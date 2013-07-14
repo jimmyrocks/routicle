@@ -8,11 +8,40 @@ var app = express();
 
 
 // Set up the database based on environment
-exports.routes = function(env) {    
+exports.routes = function(env) {
 
     var userRole = "admin";
     init(env, function(tables) {
         tables.map(function(table) {
+
+
+            // Allow Cross Site Requests
+            var allowCrossDomain = function(req, res, next) {
+                var methods = 'GET,PUT,POST,DELETE,OPTIONS';
+                if (table.allowedHosts[req.headers.host]) {
+                    res.header('Access-Control-Allow-Credentials', true);
+                    res.header('Access-Control-Allow-Origin', req.headers.origin);
+                    res.header('Access-Control-Allow-Methods', methods);
+                    res.header('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+                    // intercept OPTIONS method
+                    if ('OPTIONS' == req.method) {
+                        res.send(200);
+                    } else {
+                        next();
+                    }
+                } else {
+                    res.send(403, {auth: false});
+                }
+            };
+
+            if (table.allowedHosts) {
+                app.use(allowCrossDomain);
+            }
+            app.use(express.favicon());
+            app.use(express.bodyParser());
+            app.use(express.methodOverride());
+            app.use(app.router);
+
             paths.addService(app, table, userRole);
         });
     });
@@ -96,7 +125,6 @@ var init = function(env, callback) {
             }
         };
 
-
         // Loop through the tables and build them
         config.tables.map(function(table) {
             var tableObject = {};
@@ -104,6 +132,10 @@ var init = function(env, callback) {
             tableObject.displayName = table.displayName;
             tableObject["queryFields"] = [];
             tableObject["displayFields"] = [];
+            tableObject["defaultField"] = "_id"; // Default to the _id field
+
+            // Add the allowed hosts - Does this need to be set on a per table basis?
+            tableObject["allowedHosts"] = config.allowedHosts;
 
             // Create the schema and the queries
             var schema = {};
@@ -114,6 +146,7 @@ var init = function(env, callback) {
                     // Query Fields
                     addQueryFields(field['query'], fieldName, tableObject["queryFields"]);
                     addDisplayFields(field['displayField'], fieldName, tableObject["displayFields"]);
+                    if (field.isDefault) {tableObject["defaultField"] = fieldName;}
                }
             }
 
