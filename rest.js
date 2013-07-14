@@ -28,11 +28,25 @@ exports.addService = function(app, table, mode) {
         }
 
         var getJsonString = function(currDocuments, currFilter, currIndent){
+            var returnValue;
+            var convertId = function(record) {
+                record["id"] = record._id;
+                delete record._id;
+
+                if (currFilter.indexOf("_id") > -1) {
+                    currFilter[currFilter.indexOf("_id")] = "id";
+                }
+            };
+
             if (currDocuments instanceof Array) {
-                return JSON.stringify(currDocuments.map(function(output){return output;}), currFilter , currIndent);
+                currDocuments.map(convertId);
+                returnValue = JSON.stringify(currDocuments.map(function(output){return output;}), currFilter , currIndent);
             } else {
-                return JSON.stringify(currDocuments);
+                convertId(currDocuments);
+                returnValue = JSON.stringify(currDocuments, currFilter , currIndent);
             }
+
+            return returnValue;
         };
 
         // Pretty print output if required
@@ -58,6 +72,7 @@ exports.addService = function(app, table, mode) {
 
             // Clean up the object before sending it out
             var returnedObject = JSON.parse(getJsonString(documents, filter, indent));
+            if (!(returnedObject instanceof Array)) {returnedObject = [returnedObject];}
             res.render('index', { "title": table.model.modelName, "data": returnedObject});
         }
     };
@@ -103,6 +118,7 @@ exports.addService = function(app, table, mode) {
 
        // Update Function
        var updateCurrentData = function (req, res) {
+           console.log("UPDATE");
            table.model.find(queryFunction(req.params.field), function (err, documents) {
                if (documents && documents.length > 0) {
                    var callbackCount = 0;
@@ -120,7 +136,7 @@ exports.addService = function(app, table, mode) {
                        }
                    });
                } else {
-                   formatData(documents, req, res, returnOne);
+                   formatData(documents, req, res, req.returnOne);
                }
            });
        };
@@ -157,11 +173,10 @@ exports.addService = function(app, table, mode) {
             //"POST": createCurrentData,
             "GET": getCurrentData,
             "PUT": updateCurrentData,
-            "DEL": getCurrentData
+            "DELETE": deleteCurrentData
         };
         // Add the REST methods
         for (method in thisField.crud[mode]) {
-            console.log(method, "<--");
             if (table.crud[mode][method] && method != "c") {
                 app[crudLookup[method]]('/' + table.model.modelName + '/' + thisField.name + '/' + ':field.:format?', function(req, res){
                     reqLookup[req.method](req, res);
