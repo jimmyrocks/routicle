@@ -44,7 +44,19 @@
       },
       "fields":{
         "firstname":{
-          "type":"String"
+          "type":"String",
+          "query": [
+            {
+                "name":"firstname",
+                "operator": "$all",
+                "crud":{
+                    "guest":"r",
+                    "user":"r",
+                    "moderator":"r",
+                    "admin":"r"
+                }
+            }
+        ]
         },
         "lastname":{
           "type":"String"
