@@ -4,52 +4,65 @@ var config = require('./config');
 var allUsers = "!All_Users";
 var express = require('express');
 var paths = require('./rest');
+var backboneConfig = require("./backboneTools");
 var app = express();
 
 
 // Set up the database based on environment
 exports.routes = function(env) {
 
-    var userRole = "admin";
-    init(env, function(tables) {
+    var userRole = function (){return "admin";};
+
+    allowXSS(config, app);
+    readConfig(env, function(tables) {
         tables.map(function(table) {
-
-
-            // Allow Cross Site Requests
-            var allowCrossDomain = function(req, res, next) {
-                var methods = 'GET,PUT,POST,DELETE,OPTIONS';
-                if (table.allowedHosts[req.headers.host]) {
-                    res.header('Access-Control-Allow-Credentials', true);
-                    res.header('Access-Control-Allow-Origin', req.headers.origin);
-                    res.header('Access-Control-Allow-Methods', methods);
-                    res.header('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-                    // intercept OPTIONS method
-                    if ('OPTIONS' == req.method) {
-                        res.send(200);
-                    } else {
-                        next();
-                    }
-                } else {
-                    res.send(403, {auth: false});
-                }
-            };
-
-            if (table.allowedHosts) {
-                app.use(allowCrossDomain);
-            }
-            app.use(express.favicon());
-            app.use(express.bodyParser());
-            app.use(express.methodOverride());
-            app.use(app.router);
-
             paths.addService(app, table, userRole);
+            paths.returnJson(
+                app,
+                backboneConfig.formatTable(table),
+                "/" +  table.model.modelName + "/scripts/backboneModel",
+                userRole
+            );
         });
     });
+
+    // Return backbone compatible JSON for the browser side
 
     return app;
 };
 
-var init = function(env, callback) {
+var allowXSS = function(configFile, app) {
+    // Allow Cross Site Requests
+    var allowCrossDomain = function(req, res, next) {
+        var methods = 'GET,PUT,POST,DELETE,OPTIONS';
+        if (configFile.allowedHosts[req.headers.host]) {
+            res.header('Access-Control-Allow-Credentials', true);
+            res.header('Access-Control-Allow-Origin', req.headers.origin);
+            res.header('Access-Control-Allow-Methods', methods);
+            res.header('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+            // intercept OPTIONS method
+            if ('OPTIONS' == req.method) {
+                res.send(200);
+            } else {
+                next();
+            }
+        } else {
+            res.send(403, {auth: false});
+        }
+    };
+
+    if (configFile.allowedHosts) {
+        app.use(allowCrossDomain);
+    }
+    app.use(express.favicon());
+    app.use(express.bodyParser());
+    app.use(express.methodOverride());
+    app.use(app.router);
+}
+
+
+
+var readConfig = function(env, callback) {
 
     // Define the database connection
     mongoose.connect(config.databases[env]);
@@ -110,18 +123,14 @@ var init = function(env, callback) {
 
         var addDisplayFields = function(permissionLevels, fieldName, addTo) {
 
-            var addPermission = function(permissionLevel) {
-                if (addTo[permissionLevel]) {
-                    addTo[permissionLevel].push(fieldName);
-                } else {
-                    addTo[permissionLevel] = [fieldName];
-                }
-            };
+            var addField = function(newPermissionLevels) {
+                addTo.push({'name': fieldName, permissions: newPermissionLevels});
+            }
 
             if (permissionLevels && Object.prototype.toString.call( permissionLevels ) === '[object Array]' ) {
-                permissionLevels.map(addPermission);
+                addField(permissionLevels);
             } else {
-                addPermission(allUsers);
+                addField([allUsers]);
             }
         };
 
