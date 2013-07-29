@@ -11,19 +11,27 @@ var app = express();
 // Set up the database based on environment
 exports.routes = function(env) {
 
-    var userRole = function (){return "admin";};
+    var getUserRole = function (req){return "admin";};
 
     allowXSS(config, app);
     readConfig(env, function(tables) {
         tables.map(function(table) {
-            paths.addService(app, table, userRole);
-            paths.returnJson(
-                app,
-                backboneConfig.formatTable(table),
-                "/" +  table.model.modelName + "/scripts/backboneModel",
-                userRole
-            );
+            paths.addService(app, table, getUserRole);
         });
+
+        // Allow backbone access to the tables
+        paths.returnJson(
+            app,
+            function(newMode) {
+                var allTables = [];
+                tables.map(function(table){
+                    allTables.push(backboneConfig.formatTable(table, newMode));
+                });
+                return JSON.stringify(allTables);
+            },
+            "/s",
+            getUserRole
+        );
     });
 
     // Return backbone compatible JSON for the browser side
@@ -54,11 +62,11 @@ var allowXSS = function(configFile, app) {
     if (configFile.allowedHosts) {
         app.use(allowCrossDomain);
     }
-    app.use(express.favicon());
+    //app.use(express.favicon());
     app.use(express.bodyParser());
     app.use(express.methodOverride());
     app.use(app.router);
-}
+};
 
 
 
@@ -125,7 +133,7 @@ var readConfig = function(env, callback) {
 
             var addField = function(newPermissionLevels) {
                 addTo.push({'name': fieldName, permissions: newPermissionLevels});
-            }
+            };
 
             if (permissionLevels && Object.prototype.toString.call( permissionLevels ) === '[object Array]' ) {
                 addField(permissionLevels);
@@ -139,9 +147,9 @@ var readConfig = function(env, callback) {
             var tableObject = {};
             // Add the display name
             tableObject.displayName = table.displayName;
-            tableObject["queryFields"] = [];
-            tableObject["displayFields"] = [];
-            tableObject["defaultField"] = "_id"; // Default to the _id field
+            tableObject.queryFields = [];
+            tableObject.displayFields = [];
+            tableObject.defaultField = "_id"; // Default to the _id field
 
             // Add the allowed hosts - Does this need to be set on a per table basis?
             tableObject["allowedHosts"] = config.allowedHosts;

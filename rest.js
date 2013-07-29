@@ -148,9 +148,13 @@ exports.addService = function(app, table, mode) {
        // Update Function
        var updateCurrentData = function (req, res) {
            table.model.find(queryFunction(req.params.field), function (err, documents) {
+               console.log("req.params.field", req.params);
+               console.log("documents", documents);
                if (documents && documents.length > 0) {
+                   console.log("woo!");
                    var callbackCount = 0;
                    documents.map(function(doc) {
+                   console.log("doc", doc);
                        for (var field in req.body) {
                            if (req.body[field]) {
                                doc[field] = req.body[field];
@@ -226,16 +230,17 @@ exports.addService = function(app, table, mode) {
     // Create the REST/CRUD fields
     var fieldMatrix = table.queryFields;
     table.queryFields.map(function(queryField) {
-        //crudFields(queryField);
         createQuery(queryField);
     });
 };
 
 exports.returnJson = function(app, jsonOutput, path, mode) {
 
+    console.log(path + ".:format?");
     app.get(path + ".:format?", function(req, res) {
-        // TODO: modes on this too?
-        // Return the JSON to the requestor
-        renderResult(req, res, jsonOutput, "Request: " + path);
+        // Return the JSON to the requester
+        var newJson = jsonOutput(mode(req));
+        res.header('Cache-Control', 'no-cache, private, no-store, must-revalidate, max-stale=0, post-check=0, pre-check=0');
+        renderResult(req, res, newJson, "Request: " + path);
     });
 };
