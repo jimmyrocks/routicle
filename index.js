@@ -6,6 +6,7 @@ var express = require('express');
 var paths = require('./rest');
 var backboneConfig = require("./backboneTools");
 var app = express();
+var pjson = require ('../package.json');
 
 
 // Set up the database based on environment
@@ -29,7 +30,14 @@ exports.routes = function(env) {
                 });
                 return JSON.stringify(allTables);
             },
-            "/s",
+            "/tables",
+            getUserRole
+        );
+
+        paths.returnJson(
+            app,
+            function(newMode){return JSON.stringify(pjson)},
+            "/appInfo",
             getUserRole
         );
     });

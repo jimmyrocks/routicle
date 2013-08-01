@@ -44,7 +44,7 @@ var renderResult = function (req, res, jsonResult, title) {
         // Clean up the object before sending it out
         var returnedObject = JSON.parse(jsonString);
         if (!(returnedObject instanceof Array)) {returnedObject = [returnedObject];}
-        res.render('index', { "title": title, "data": returnedObject});
+        res.render('displayTable', { "title": title, "data": returnedObject});
     }
 };
 
@@ -148,13 +148,9 @@ exports.addService = function(app, table, mode) {
        // Update Function
        var updateCurrentData = function (req, res) {
            table.model.find(queryFunction(req.params.field), function (err, documents) {
-               console.log("req.params.field", req.params);
-               console.log("documents", documents);
                if (documents && documents.length > 0) {
-                   console.log("woo!");
                    var callbackCount = 0;
                    documents.map(function(doc) {
-                   console.log("doc", doc);
                        for (var field in req.body) {
                            if (req.body[field]) {
                                doc[field] = req.body[field];
@@ -236,7 +232,6 @@ exports.addService = function(app, table, mode) {
 
 exports.returnJson = function(app, jsonOutput, path, mode) {
 
-    console.log(path + ".:format?");
     app.get(path + ".:format?", function(req, res) {
         // Return the JSON to the requester
         var newJson = jsonOutput(mode(req));

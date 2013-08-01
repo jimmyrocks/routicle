@@ -47,6 +47,8 @@ exports.formatTable = function(table, userMode) {
     });
     newTable.displayFields = newDisplayFields;
     newTable.defaultField = convertId(table.defaultField);
+    newTable.displayName = table.displayName;
+    newTable.pathName = table.model.modelName;
 
     return newTable;
 };
