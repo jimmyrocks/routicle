@@ -13,6 +13,10 @@ var pjson = require ('../package.json');
 exports.routes = function(env) {
 
     var getUserRole = function (req){return "admin";};
+    var routicle = {
+        'require': require, // Allows the layouts to use require
+        'pjson': pjson
+    };
 
     allowXSS(config, app);
     readConfig(env, function(tables) {
@@ -40,10 +44,14 @@ exports.routes = function(env) {
             "/appInfo",
             getUserRole
         );
+
+
+        routicle.tables = tables;
     });
 
-    // Return backbone compatible JSON for the browser side
+    GLOBAL.routicle = routicle;
 
+    // Return backbone compatible JSON for the browser side
     return app;
 };
 
