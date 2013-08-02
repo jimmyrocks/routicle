@@ -1,14 +1,15 @@
 {
+  "allowedHosts": {
+    "172.16.155.132:3333": true,
+    "172.16.155.132:3000": true
+  },
   "databases":{
-    "development":"mongodb://localhost/routicle-development",
-    "staging":"mongodb://localhost/routicle-staging",
-    "production":"mongodb://localhost/routicle",
-    "test":"mongodb://localhost/routicle-test"
+    "development":"mongodb://localhost/backbone-development"
   },
   "tables":[
     {
-      "displayName":"Events",
-      "internalName":"events",
+      "displayName":"Users",
+      "internalName":"users",
       "tableCrud":{
         "guest":"r",
         "user":"r",
@@ -17,93 +18,7 @@
       },
       "mongoFields":{
         "_id":{
-          "displayField":[
-            "guest",
-            "user",
-            "moderator",
-            "admin"
-          ],
-          "query":[
-            {
-              "name":"id",
-              "operator":"$all",
-              "crud":{
-                "guest":"r",
-                "user":"r",
-                "moderator":"cru",
-                "admin":"crud"
-              }
-            }
-          ]
-        },
-        "__v":{
-          "displayField":[
-
-          ]
-        }
-      },
-      "fields":{
-        "name":{
-          "type":"String",
-          "query":[
-            {
-              "name":"name",
-              "operator":"$all",
-              "crud":{
-                "guest":"r",
-                "user":"r",
-                "moderator":"cru",
-                "admin":"crud"
-              }
-            }
-          ]
-        },
-        "startTime":{
-          "type":"Date"
-        },
-        "endTime":{
-          "type":"Date"
-        },
-        "location":{
-          "type":"String",
-          "query":[
-            {
-              "name":"location",
-              "operator":"$all",
-              "crud":{
-                "guest":"c",
-                "user":"c",
-                "moderator":"cru",
-                "admin":"crud"
-              }
-            }
-          ]
-        },
-        "cost":{
-          "type":"Number"
-        },
-        "ticketPath":{
-          "type":"String"
-        },
-        "moreInfo":{
-          "type":"Array"
-        },
-        "imagePath":{
-          "type":"Array"
-        }
-      }
-    },
-    {
-      "displayName":"Locations",
-      "internalName":"locations",
-      "tableCrud":{
-        "guest":"r",
-        "user":"r",
-        "moderator":"cru",
-        "admin":"crud"
-      },
-      "mongoFields":{
-        "_id":{
+          "isDefault": "true",
           "displayField":[
             "guest",
             "user",
@@ -128,35 +43,26 @@
         }
       },
       "fields":{
-        "name":{
+        "firstname":{
           "type":"String",
-          "query":[
+          "query": [
             {
-              "name":"name",
-              "operator":"$all",
-              "crud":{
-                "guest":"r",
-                "user":"r",
-                "moderator":"cru",
-                "admin":"crud"
-              }
+                "name":"firstname",
+                "operator": "$all",
+                "crud":{
+                    "guest":"r",
+                    "user":"r",
+                    "moderator":"r",
+                    "admin":"r"
+                }
             }
-          ]
+        ]
         },
-        "address":{
+        "lastname":{
           "type":"String"
         },
-        "city":{
-          "type":"String"
-        },
-        "lonLat":{
-          "type":"Array"
-        },
-        "moreInfo":{
-          "type":"Array"
-        },
-        "imagePath":{
-          "type":"Array"
+        "age":{
+          "type":"Number"
         }
       }
     }

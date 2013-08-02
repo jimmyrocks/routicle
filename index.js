@@ -4,20 +4,84 @@ var config = require('./config');
 var allUsers = "!All_Users";
 var express = require('express');
 var paths = require('./rest');
+var backboneConfig = require("./backboneTools");
 var app = express();
+var pjson = require ('../package.json');
 
 
 // Set up the database based on environment
 exports.routes = function(env) {
 
-    var userRole = "admin";
+    var getUserRole = function (req){return "admin";};
+    var routicle = {
+        'require': require, // Allows the layouts to use require
+        'pjson': pjson
+    };
+
+    allowXSS(config, app);
     readConfig(env, function(tables) {
         tables.map(function(table) {
-            paths.addService(app, table, userRole);
+            paths.addService(app, table, getUserRole);
         });
+
+        // Allow backbone access to the tables
+        paths.returnJson(
+            app,
+            function(newMode) {
+                var allTables = [];
+                tables.map(function(table){
+                    allTables.push(backboneConfig.formatTable(table, newMode));
+                });
+                return JSON.stringify(allTables);
+            },
+            "/tables",
+            getUserRole
+        );
+
+        paths.returnJson(
+            app,
+            function(newMode){return JSON.stringify(pjson)},
+            "/appInfo",
+            getUserRole
+        );
+
+
+        routicle.tables = tables;
     });
 
+    GLOBAL.routicle = routicle;
+
+    // Return backbone compatible JSON for the browser side
     return app;
+};
+
+var allowXSS = function(configFile, app) {
+    // Allow Cross Site Requests
+    var allowCrossDomain = function(req, res, next) {
+        var methods = 'GET,PUT,POST,DELETE,OPTIONS';
+        if (configFile.allowedHosts[req.headers.host]) {
+            res.header('Access-Control-Allow-Credentials', true);
+            res.header('Access-Control-Allow-Origin', req.headers.origin);
+            res.header('Access-Control-Allow-Methods', methods);
+            res.header('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+            // intercept OPTIONS method
+            if ('OPTIONS' == req.method) {
+                res.send(200);
+            } else {
+                next();
+            }
+        } else {
+            res.send(403, {auth: false});
+        }
+    };
+
+    if (configFile.allowedHosts) {
+        app.use(allowCrossDomain);
+    }
+    //app.use(express.favicon());
+    app.use(express.bodyParser());
+    app.use(express.methodOverride());
+    app.use(app.router);
 };
 
 var readConfig = function(env, callback) {
@@ -81,29 +145,28 @@ var readConfig = function(env, callback) {
 
         var addDisplayFields = function(permissionLevels, fieldName, addTo) {
 
-            var addPermission = function(permissionLevel) {
-                if (addTo[permissionLevel]) {
-                    addTo[permissionLevel].push(fieldName);
-                } else {
-                    addTo[permissionLevel] = [fieldName];
-                }
+            var addField = function(newPermissionLevels) {
+                addTo.push({'name': fieldName, permissions: newPermissionLevels});
             };
 
             if (permissionLevels && Object.prototype.toString.call( permissionLevels ) === '[object Array]' ) {
-                permissionLevels.map(addPermission);
+                addField(permissionLevels);
             } else {
-                addPermission(allUsers);
+                addField([allUsers]);
             }
         };
-
 
         // Loop through the tables and build them
         config.tables.map(function(table) {
             var tableObject = {};
             // Add the display name
             tableObject.displayName = table.displayName;
-            tableObject["queryFields"] = [];
-            tableObject["displayFields"] = [];
+            tableObject.queryFields = [];
+            tableObject.displayFields = [];
+            tableObject.defaultField = "_id"; // Default to the _id field
+
+            // Add the allowed hosts - Does this need to be set on a per table basis?
+            tableObject["allowedHosts"] = config.allowedHosts;
 
             // Create the schema and the queries
             var schema = {};
@@ -114,6 +177,7 @@ var readConfig = function(env, callback) {
                     // Query Fields
                     addQueryFields(field['query'], fieldName, tableObject["queryFields"]);
                     addDisplayFields(field['displayField'], fieldName, tableObject["displayFields"]);
+                    if (field.isDefault) {tableObject["defaultField"] = fieldName;}
                }
             }
 
