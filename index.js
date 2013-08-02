@@ -8,10 +8,10 @@ var app = express();
 
 
 // Set up the database based on environment
-exports.routes = function(env) {    
+exports.routes = function(env) {
 
     var userRole = "admin";
-    init(env, function(tables) {
+    readConfig(env, function(tables) {
         tables.map(function(table) {
             paths.addService(app, table, userRole);
         });
@@ -20,7 +20,7 @@ exports.routes = function(env) {
     return app;
 };
 
-var init = function(env, callback) {
+var readConfig = function(env, callback) {
 
     // Define the database connection
     mongoose.connect(config.databases[env]);
