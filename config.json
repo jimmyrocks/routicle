@@ -1,6 +1,6 @@
 {
   "allowedHosts": {
-    "192.158.33.10:3000": true
+    "192.168.33.10:3000": true
   },
   "databases":{
     "development":"mongodb://localhost/backbone-development"
